@@ -11,17 +11,17 @@ import {
 import { EventService } from "@/service/event/event-service";
 import { Event } from "@/types/event";
 import { Plus } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { columns } from "./COLUMN";
 import { MyDataTable } from "@/components/my-components/data-table";
 import { toast } from "sonner";
 import { User } from "@/types/user";
 import Cookies from "js-cookie";
+import { columns } from "./COLUMN";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function Events() {
-  const router = useRouter();
+  const { id } = useParams();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -30,12 +30,12 @@ export default function Events() {
   const { user } = useAuth();
 
   const fetchEvents = async () => {
-    if (!user) {
-      setEvents([]);
-      return "ID invalido";
-    }
     try {
-      const response = await eventService.getEventsDash(user!.id);
+      if (!id || typeof id !== "string") {
+        throw new Error("ID inválido");
+      }
+
+      const response = await eventService.getEventsPromoter(id);
       if (response && response.success) {
         setEvents(
           Array.isArray(response.data) ? response.data : [response.data]
@@ -46,7 +46,7 @@ export default function Events() {
       setLoading(false);
     } catch (err) {
       console.error("Erro no componente:", err);
-      // setError("Erro ao buscar eventos");
+      setError("Erro ao buscar eventos");
       setLoading(false);
     }
   };
@@ -106,15 +106,8 @@ export default function Events() {
     <main className="flex flex-col h-[90vh] overscroll-y-auto px-6">
       <header className="mb-5 flex flex-wrap justify-between items-center gap-4">
         <article className="flex flex-col items-start">
-          <h1 className="text-2xl font-bold">Gestão de eventos</h1>
-          <span className="text-base text-gray-500">
-            Cria e faz gestão dos seus eventos
-          </span>
+          <h1 className="text-2xl font-bold">Lista de eventos</h1>
         </article>
-
-        <Button onClick={() => router.push("events/create")} className="">
-          <Plus className="mr-2 h-4 w-4" /> Criar evento
-        </Button>
       </header>
 
       <section className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
@@ -146,45 +139,9 @@ export default function Events() {
         <Card>
           <CardHeader>
             <CardTitle>Eventos</CardTitle>
-            <CardDescription>Faz gestão dos seus eventos</CardDescription>
           </CardHeader>
           <CardContent>
-            <MyDataTable
-              columns={columns}
-              data={events ?? []}
-              actions={{
-                viewScanners: (item: any) => {
-                  router.push(`events/scanners-event/${item.id}`);
-                },
-                view: (item: any) => {
-                  router.push(`events/view/${item.id}`);
-                },
-                update: (item: any) => {
-                  router.push(`events/update/${item.id}`);
-                },
-                delete: async (item: any) => {
-                  try {
-                    const eventService = new EventService();
-                    await eventService.delete(item.id).then(() => {
-                      // if (response.success) {
-                      //   toast.success("Evento deletado com sucesso");
-                      //   fetchEvents(); // Atualiza a lista corretamente
-                      // } else {
-                      //   toast.error(
-                      //     response.message || "Erro ao deletar evento"
-                      //   );
-                      // }
-
-                      toast.success("Evento deletado com sucesso");
-                      fetchEvents(); // Atualiza a lista corretamente
-                    });
-                  } catch (error) {
-                    console.error("Delete error:", error);
-                    toast.error("Ocorreu um erro ao deletar o evento");
-                  }
-                },
-              }}
-            />
+            <MyDataTable columns={columns} data={events ?? []} />
           </CardContent>
         </Card>
       </section>

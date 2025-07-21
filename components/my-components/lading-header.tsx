@@ -58,14 +58,6 @@ const LandingHeader = () => {
 
           <nav>
             <ul className="flex items-center  space-x-2 md:space-x-6">
-              <li>
-                {/* <LanguageSelector 
-                  position="static" 
-                  variant="ghost" 
-                  className="text-white hover:bg-gray-800" 
-                /> */}
-                <Globe />
-              </li>
               <li className={isMobile ? "block" : "hidden md:block"}>
                 <Dialog>
                   <DialogTrigger asChild>
@@ -153,10 +145,12 @@ const LandingHeader = () => {
                         >
                           <Link
                             href={
-                              user.user_type == "promotor"
+                              user?.user_type == "promotor"
                                 ? `/events`
-                                : user.user_type == "scanner"
+                                : user?.user_type == "scanner"
                                 ? "scanner-events"
+                                : user?.user_type == "master-admin"
+                                ? "report-admin"
                                 : "profile"
                             }
                           >
@@ -169,7 +163,7 @@ const LandingHeader = () => {
                           className="w-full"
                           onClick={() => {
                             signOut();
-                            router.refresh();
+                            router.replace("/auth/sign-in");
                           }}
                         >
                           {t("signOut")}

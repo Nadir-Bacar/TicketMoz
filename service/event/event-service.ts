@@ -25,6 +25,17 @@ export class EventService {
     }
   }
 
+  async getEventsPromoter(userID: string): Promise<any> {
+    try {
+      const resp = await api.get(`/event/by-promoter/${userID}`);
+      if (resp.status == 200 || resp.status == 201) {
+        return resp.data;
+      }
+    } catch (error) {
+      throw new Error(error + "");
+    }
+  }
+
   async createEvent(eventData: any) {
     try {
       const response = await api.post("/event/create", eventData);
@@ -32,6 +43,19 @@ export class EventService {
         return response.data; // Retorna os dados do evento criado
       }
       throw new Error(response.data.message || "Erro ao criar evento");
+    } catch (error) {
+      console.error("Erro no EventService:", error);
+      throw error; // Rejeita o erro para ser tratado no componente
+    }
+  }
+
+  async updateEvent(eventID: string, eventData: any) {
+    try {
+      const response = await api.put(`/event/update/${eventID}`, eventData);
+      if (response.status === 201 || response.status == 200) {
+        return response.data; // Retorna os dados do evento criado
+      }
+      throw new Error(response.data.message || "Erro ao atualizar evento");
     } catch (error) {
       console.error("Erro no EventService:", error);
       throw error; // Rejeita o erro para ser tratado no componente
@@ -88,7 +112,7 @@ export class EventService {
       });
 
       if (resp.status != 400) {
-        return resp.data.data;
+        return resp.data;
       } else {
         return resp.data.message || "Erro ao aceitar o convite";
       }

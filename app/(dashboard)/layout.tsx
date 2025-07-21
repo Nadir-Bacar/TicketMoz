@@ -20,6 +20,11 @@ export default function DashLayouy({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user } = useAuth();
 
+  useEffect(() => {
+    if (user && user.company && user.company.isVerify == null) {
+      router.push("/");
+    }
+  }, []);
   return (
     <main className="flex flex-col md:flex-row w-screen">
       <aside>
@@ -30,13 +35,13 @@ export default function DashLayouy({
         <header className="h-14 border-b flex items-center justify-between px-4 md:px-6 fixed top-0 w-full bg-background z-30 md:relative">
           <div className="flex items-center gap-3">
             <h1 className="text-lg font-medium capitalize ml-8 md:ml-0">
-              {user?.role} {t("dashboard")}
+              {user?.user_type} {t("dashboard")}
             </h1>
           </div>
           <div className="flex items-center gap-4">
             {/* Add Language Selector to header for easy access */}
             {/* <LanguageSelector position="relative" className="" /> */}
-            <Button>Language selector</Button>
+            {/* <Button>Language selector</Button> */}
 
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground">

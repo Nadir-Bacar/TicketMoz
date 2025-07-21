@@ -14,14 +14,18 @@ import { EventService } from "@/service/event/event-service";
 import { toast } from "sonner";
 import { MyDataTable } from "@/components/my-components/data-table";
 import { ColumnDef } from "@tanstack/react-table";
-
+import { Eye, QrCode } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { User } from "@/types/user";
 type UserType = {
   id: string;
   name: string;
   email: string;
   user_type: "cliente" | "promotor" | "admin" | "scanner";
   isVerify: boolean;
-  isApproved?: boolean;
+  company?: {
+    isVerify: boolean;
+  };
 };
 
 type EventType = {
@@ -30,7 +34,7 @@ type EventType = {
 };
 
 export default function AdminDashboard() {
-  const userColumns: ColumnDef<UserType>[] = [
+  const userColumns: ColumnDef<User>[] = [
     {
       accessorKey: "name",
       header: "Nome",
@@ -51,29 +55,33 @@ export default function AdminDashboard() {
     {
       accessorKey: "status",
       header: "Estado",
-      cell: ({ row }) =>
-        row.original.isVerify ? (
-          <span className="text-green-600">Ativo</span>
-        ) : row.original.user_type === "promotor" &&
-          !row.original.isApproved ? (
-          <span className="text-yellow-500">Pendente</span>
-        ) : (
-          <span className="text-red-500">Bloqueado</span>
-        ),
+      cell: ({ row }) => {
+        const user = row.original;
+        if (user.isVerify) {
+          return <span className="text-green-600">Ativo</span>;
+        } else if (
+          user.user_type === "promotor" &&
+          user.company?.isVerify === false
+        ) {
+          return <span className="text-yellow-500">Pendente</span>;
+        } else {
+          return <span className="text-red-500">Bloqueado</span>;
+        }
+      },
     },
   ];
 
-  const [users, setUsers] = useState<UserType[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [events, setEvents] = useState<EventType[]>([]);
   const [filter, setFilter] = useState<
     "all" | "cliente" | "promotor" | "scanner"
   >("all");
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   const userService = new UserService();
   const eventService = new EventService();
 
-  // Função para buscar dados
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -81,8 +89,8 @@ export default function AdminDashboard() {
         userService.getAll(),
         eventService.getEvents(),
       ]);
-      setUsers(usersData);
-      setEvents(eventsData);
+      setUsers(usersData || []);
+      setEvents(eventsData || []);
     } catch {
       toast.error("Erro ao carregar dados do admin");
     } finally {
@@ -128,15 +136,18 @@ export default function AdminDashboard() {
     }
   };
 
-  // Estatísticas rápidas
-  const totalUsers = users.length;
-  const totalPromoters = users.filter((u) => u.user_type === "promotor").length;
-  const totalClients = users.filter((u) => u.user_type === "cliente").length;
-  const totalBlocked = users.filter((u) => u.isVerify).length;
-  const totalEvents = events.length;
-  const promotersToApprove = users.filter(
-    (u) => u.user_type === "promotor" && !u.isApproved
-  ).length;
+  // Estatísticas protegidas contra undefined
+  const totalUsers = users?.length ?? 0;
+  const totalPromoters =
+    users?.filter((u) => u.user_type === "promotor").length ?? 0;
+  const totalClients =
+    users?.filter((u) => u.user_type === "cliente").length ?? 0;
+  const totalBlocked = users?.filter((u) => !u.isVerify).length ?? 0;
+  const totalEvents = events?.length ?? 0;
+  const promotersToApprove =
+    users?.filter(
+      (u) => u.user_type === "promotor" && u.company?.isVerify === false
+    ).length ?? 0;
 
   if (loading) {
     return (
@@ -238,39 +249,51 @@ export default function AdminDashboard() {
                   {
                     id: "actions",
                     header: "Ações",
-                    cell: ({ row }) => (
-                      <div className="flex gap-2 justify-center">
-                        {row.original.user_type === "promotor" &&
-                          !row.original.isApproved && (
+                    cell: ({ row }) => {
+                      const user = row.original;
+                      return (
+                        <div className="flex gap-2 justify-center">
+                          {user.user_type === "promotor" &&
+                            user.company?.isVerify === false && (
+                              <Button
+                                size="sm"
+                                className="mr-2"
+                                onClick={() => handleApprovePromoter(user.id)}
+                              >
+                                Aprovar
+                              </Button>
+                            )}
+                          {user.isVerify ? (
                             <Button
                               size="sm"
-                              className="mr-2"
-                              onClick={() =>
-                                handleApprovePromoter(row.original.id)
-                              }
+                              variant="destructive"
+                              onClick={() => handleBlockUser(user.id)}
                             >
-                              Aprovar
+                              Bloquear
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleUnblockUser(user.id)}
+                            >
+                              Desbloquear
                             </Button>
                           )}
-                        {row.original.isVerify == true ? (
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => handleBlockUser(row.original.id)}
-                          >
-                            Bloquear
-                          </Button>
-                        ) : (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleUnblockUser(row.original.id)}
-                          >
-                            Desbloquear
-                          </Button>
-                        )}
-                      </div>
-                    ),
+                          {user.user_type === "promotor" && (
+                            <Button
+                              variant={"ghost"}
+                              className="border"
+                              onClick={() =>
+                                router.push(`report-admin/event/${user.id}`)
+                              }
+                            >
+                              <Eye />
+                            </Button>
+                          )}
+                        </div>
+                      );
+                    },
                   },
                 ]}
                 data={filteredUsers}
